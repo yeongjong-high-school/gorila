@@ -2,90 +2,247 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <title>부드러운 엔트리 버튼</title>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500&display=swap" rel="stylesheet">
+  <title>엔트리 버튼 + 로그인</title>
   <style>
-    html, body {
+    body {
       margin: 0;
-      height: 100%;
       background-color: #fafafa;
-      font-family: Arial, sans-serif;
-      overflow: hidden;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      position: relative;
+      overflow-x: hidden;
     }
 
+    /* 왼쪽 위 이미지 */
     .top-left-image {
       position: fixed;
       top: 20px;
-      left: 20px;
-      width: 150px;
-      border-radius: 12px;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
-      user-select: none;
-      pointer-events: none;
-      z-index: 1000;
-    }
-
-    .center-container {
-      height: 100%;
+      left: 0;
       display: flex;
       flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      gap: 20px;
+      align-items: flex-start;
+      z-index: 1000;
+      padding-left: 20px; /* 이미지 왼쪽에 약간 여백 */
     }
 
-    .svg-image {
-      width: 180px;
+    .top-left-image img {
+      width: 120px;
+      height: auto;
       user-select: none;
-      pointer-events: none;
     }
 
-    button {
+    /* 이미지 바로 밑 가로줄 */
+    .underline {
+      position: fixed;
+      top: 62px; /* 이미지 높이(약 38~40px) + 여유 */
+      left: 0;
+      width: 100vw;
+      height: 2px;
+      background-color: black;
+      z-index: 999;
+    }
+
+    /* 중앙 영역 */
+    .center-container {
+      text-align: center;
+      user-select: none;
+    }
+
+    .center-container img {
+      width: 220px;
+      height: auto;
+      margin-bottom: 15px;
+      user-select: none;
+    }
+
+    button#goButton {
       padding: 15px 40px;
-      font-family: 'Noto Sans KR', 'Segoe UI', Tahoma, Geneva, sans-serif;
-      font-weight: 400;
       font-size: 20px;
-      letter-spacing: 0.03em;
+      font-weight: 600;
       background-color: #00c3ff;
       border: none;
       border-radius: 10px;
       cursor: pointer;
-      transition: background-color 0.2s, box-shadow 0.2s;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+      transition: background-color 0.2s;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: white;
       user-select: none;
-      color: #fff;
-      /* 부드러운 텍스트 렌더링 */
-      -webkit-font-smoothing: antialiased;
-      -moz-osx-font-smoothing: grayscale;
-      text-shadow: 0 1px 1px rgba(0,0,0,0.1);
     }
 
-    button:hover {
+    button#goButton:hover {
       background-color: #ffdb4d;
-      box-shadow: 0 6px 12px rgba(0,0,0,0.25);
       color: #333;
+    }
+
+    /* 로그인 텍스트 위치 - 오른쪽 위 */
+    .top-right-login {
+      position: fixed;
+      top: 20px;
+      right: 40px;
+      font-size: 18px;
+      font-weight: 500;
+      cursor: pointer;
+      z-index: 1000;
+      color: #333;
+      background-color: transparent;
+      border: none;
+      outline: none;
+      user-select: none;
+    }
+
+    /* 로그인 모달 배경 */
+    .modal-background {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: rgba(0,0,0,0.4);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 2000;
+    }
+
+    /* 로그인 모달 박스 */
+    .modal {
+      background-color: white;
+      padding: 30px 40px;
+      border-radius: 15px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      width: 320px;
+      text-align: center;
+      user-select: none;
+    }
+
+    .modal h2 {
+      margin-top: 0;
+      margin-bottom: 20px;
+      font-weight: 700;
+      color: #222;
+    }
+
+    .modal input {
+      width: 100%;
+      padding: 10px 12px;
+      margin-bottom: 15px;
+      font-size: 16px;
+      border: 1.5px solid #ccc;
+      border-radius: 8px;
+      outline: none;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .modal input:focus {
+      border-color: #00c3ff;
+      box-shadow: 0 0 8px #00c3ff88;
+    }
+
+    .modal button {
+      width: 100%;
+      padding: 12px;
+      background-color: #00c3ff;
+      border: none;
+      border-radius: 10px;
+      font-size: 18px;
+      font-weight: 700;
+      color: white;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    .modal button:hover {
+      background-color: #007bbf;
+    }
+
+    /* 에러 메시지 */
+    .error-msg {
+      color: red;
+      font-size: 14px;
+      margin-bottom: 10px;
+      display: none;
     }
   </style>
 </head>
 <body>
-  <img
-    class="top-left-image"
-    src="https://kocoafab.cc/data/201603172030051120.jpg"
-    alt="왼쪽 상단 이미지"
-  />
+  <!-- 왼쪽 위 이미지 + 밑에 검은 가로줄 -->
+  <div class="top-left-image">
+    <img src="https://kocoafab.cc/data/201603172030051120.jpg" alt="왼쪽 위 이미지" draggable="false" />
+    <div class="underline"></div>
+  </div>
 
+  <!-- 오른쪽 위 로그인 텍스트 -->
+  <button class="top-right-login" id="loginBtn">로그인</button>
+
+  <!-- 중앙 엔트리 이미지 + 버튼 -->
   <div class="center-container">
-    <img
-      class="svg-image"
-      src="https://playentry.org/uploads/s6/34/s634k50xkxidtvsn1a57292ed07yexn5.svg"
-      alt="엔트리 캐릭터"
-    />
+    <img src="https://playentry.org/uploads/s6/34/s634k50xkxidtvsn1a57292ed07yexn5.svg" alt="엔트리 로고" draggable="false" />
+    <br />
     <button id="goButton">엔트리</button>
   </div>
 
+  <!-- 로그인 모달 -->
+  <div class="modal-background" id="modalBg">
+    <div class="modal">
+      <h2>비밀번호 로그인</h2>
+      <div class="error-msg" id="errorMsg">아이디 또는 비밀번호가 틀렸습니다.</div>
+      <input type="text" id="username" placeholder="아이디" autocomplete="username" />
+      <input type="password" id="password" placeholder="비밀번호" autocomplete="current-password" />
+      <button id="submitLogin">로그인</button>
+    </div>
+  </div>
+
   <script>
+    // 엔트리 버튼 새창 열기
     document.getElementById("goButton").addEventListener("click", () => {
       window.open("https://playentry.org", "_blank");
+    });
+
+    const loginBtn = document.getElementById("loginBtn");
+    const modalBg = document.getElementById("modalBg");
+    const submitLogin = document.getElementById("submitLogin");
+    const errorMsg = document.getElementById("errorMsg");
+
+    // 로그인 버튼 누르면 모달 표시
+    loginBtn.addEventListener("click", () => {
+      errorMsg.style.display = "none";
+      modalBg.style.display = "flex";
+      document.getElementById("username").value = "";
+      document.getElementById("password").value = "";
+      document.getElementById("username").focus();
+    });
+
+    // 모달 외부 클릭 시 모달 닫기
+    modalBg.addEventListener("click", (e) => {
+      if(e.target === modalBg) {
+        modalBg.style.display = "none";
+      }
+    });
+
+    // 로그인 처리
+    submitLogin.addEventListener("click", () => {
+      const user = document.getElementById("username").value.trim();
+      const pass = document.getElementById("password").value.trim();
+
+      if(user === "Danielyoo0503" && pass === "danielyoo0503") {
+        window.location.href = "https://playentry.org/profile/619a407ae061edb2695fae88?sort=created&term=all&isOpen=all";
+      } else {
+        errorMsg.style.display = "block";
+      }
+    });
+
+    // 엔터키로도 로그인 가능하게
+    [document.getElementById("username"), document.getElementById("password")].forEach(input => {
+      input.addEventListener("keydown", (e) => {
+        if(e.key === "Enter") {
+          submitLogin.click();
+        }
+      });
     });
   </script>
 </body>
