@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>부드러운 엔트리 버튼</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    html, body {
+      margin: 0;
+      height: 100%;
+      background-color: #fafafa;
+      font-family: Arial, sans-serif;
+      overflow: hidden;
+    }
+
+    .top-left-image {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      width: 150px;
+      border-radius: 12px;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+      user-select: none;
+      pointer-events: none;
+      z-index: 1000;
+    }
+
+    .center-container {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .svg-image {
+      width: 180px;
+      user-select: none;
+      pointer-events: none;
+    }
+
+    button {
+      padding: 15px 40px;
+      font-family: 'Noto Sans KR', 'Segoe UI', Tahoma, Geneva, sans-serif;
+      font-weight: 400;
+      font-size: 20px;
+      letter-spacing: 0.03em;
+      background-color: #00c3ff;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background-color 0.2s, box-shadow 0.2s;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+      user-select: none;
+      color: #fff;
+      /* 부드러운 텍스트 렌더링 */
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      text-shadow: 0 1px 1px rgba(0,0,0,0.1);
+    }
+
+    button:hover {
+      background-color: #ffdb4d;
+      box-shadow: 0 6px 12px rgba(0,0,0,0.25);
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+  <img
+    class="top-left-image"
+    src="https://kocoafab.cc/data/201603172030051120.jpg"
+    alt="왼쪽 상단 이미지"
+  />
+
+  <div class="center-container">
+    <img
+      class="svg-image"
+      src="https://playentry.org/uploads/s6/34/s634k50xkxidtvsn1a57292ed07yexn5.svg"
+      alt="엔트리 캐릭터"
+    />
+    <button id="goButton">엔트리</button>
+  </div>
+
+  <script>
+    document.getElementById("goButton").addEventListener("click", () => {
+      window.open("https://playentry.org", "_blank");
+    });
+  </script>
+</body>
+</html>
