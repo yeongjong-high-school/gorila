@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8" />
+    <title>Deeeep.io</title>
+    <style>
+        body, html {
+            margin: 0; padding: 0; overflow: hidden;
+            background: #001f3f; /* 깊은 바다색 */
+        }
+        canvas {
+            display: block;
+            background-color: #001f3f;
+            margin: 0 auto;
+        }
+        #score {
+            position: absolute;
+            top: 10px; left: 10px;
+            font-family: 'Arial', sans-serif;
+            font-size: 20px;
+            color: white;
+            user-select: none;
+        }
+    </style>
+</head>
+<body>
+    <div id="score">점수: 0</div>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const mapWidth = 7200;
+        const mapHeight = 5400;
+
+        const player = {
+            x: mapWidth / 2,
+            y: mapHeight / 2,
+            size: 20, // 충돌 감지에 사용되는 기본 크기 (픽셀)
+            speed: 3, // 기본 이동 속도 (상하좌우 모두 동일)
+            horizontalSpeedMultiplier: 1, // 상하 속도와 동일하게 1로 설정
+            score: 0,
+            rotation: 0
+        };
+
+        const foodImage = new Image();
+        foodImage.src = 'https://i.namu.wiki/i/s1vWkZEg4_ZbmauCIBMNsNJ7rDZ3j62eBUU5RhYL1fe23-mGUnmxzVMZzU1xlxjd6T13x-5QQBDDJqeuNjZDhDipVvx8kzb6su6gpTezuGei6RByFIMFkfFvJqyl1J8tg5rPAnU4zyyhXfZyqPC8rA.webp';
+
+        const playerImage = new Image();
+        playerImage.src = 'https://i.namu.wiki/i/Eif-L6A9ePR_ftTP6w6u4oVb77uRi6A49eIKcr0XK6KnzEejeVmcaxiCL7d74WLKEjTGO5w0TPRAVobQySLY_Ld6l2p7sd91_3jgK2KAtRb_M9DFNso-jZr_TZPSE3DslL5GKLo_N50RZLdGwaPghg.webp';
+
+        const playerImageAspectRatio = 224 / 389;
+
+        const foods = [];
+
+        function createIslandShape(cx, cy, radius, points, irregularity) {
+            const angleStep = (Math.PI * 2) / points;
+            const vertices = [];
+            for(let i = 0; i < points; i++) {
+                const angle = i * angleStep;
+                const randRadius = radius * (1 + (Math.random()*2 - 1) * irregularity);
+                const x = cx + Math.cos(angle) * randRadius;
+                const y = cy + Math.sin(angle) * randRadius;
+                vertices.push({x, y});
+            }
+            return vertices;
+        }
+
+        const islands = [
+            {cx: mapWidth * 0.25, cy: mapHeight * 0.15, radius: 350, points: 10, irregularity: 0.35, hasCoconutTree: true},
+            {cx: mapWidth * 0.7, cy: mapHeight * 0.4, radius: 500, points: 12, irregularity: 0.4},
+            {cx: mapWidth * 0.8, cy: mapHeight * 0.1, radius: 200, points: 8, irregularity: 0.3, hasCoconutTree: true},
+            {cx: mapWidth * 0.1, cy: mapHeight * 0.8, radius: 400, points: 11, irregularity: 0.35},
+            {cx: mapWidth * 0.2, cy: mapHeight * 0.55, radius: 320, points: 7, irregularity: 0.4},
+            {cx: mapWidth * 0.9, cy: mapHeight * 0.5, radius: 280, points: 10, irregularity: 0.25, hasCoconutTree: true},
+            {cx: mapWidth * 0.5, cy: mapHeight * 0.08, radius: 250, points: 9, irregularity: 0.3, hasCoconutTree: true},
+            {cx: mapWidth * 0.6, cy: mapHeight * 0.75, radius: 380, points: 10, irregularity: 0.3},
+            {cx: mapWidth * 0.05, cy: mapHeight * 0.1, radius: 220, points: 7, irregularity: 0.32},
+            {cx: mapWidth * 0.4, cy: mapHeight * 0.9, radius: 300, points: 8, irregularity: 0.38, hasCoconutTree: true},
+            {cx: mapWidth * 0.15, cy: mapHeight * 0.3, radius: 200, points: 6, irregularity: 0.25},
+            {cx: mapWidth * 0.75, cy: mapHeight * 0.85, radius: 350, points: 11, irregularity: 0.4, hasCoconutTree: true},
+            {cx: mapWidth * 0.3, cy: mapHeight * 0.7, radius: 290, points: 9, irregularity: 0.35},
+            {cx: mapWidth * 0.95, cy: mapHeight * 0.2, radius: 180, points: 7, irregularity: 0.2},
+            {cx: mapWidth * 0.08, cy: mapHeight * 0.45, radius: 260, points: 8, irregularity: 0.3, hasCoconutTree: true},
+            {cx: mapWidth * 0.4, cy: mapHeight * 0.25, radius: 310, points: 10, irregularity: 0.4},
+            {cx: mapWidth * 0.6, cy: mapHeight * 0.05, radius: 270, points: 8, irregularity: 0.3, hasCoconutTree: true},
+            {cx: mapWidth * 0.2, cy: mapHeight * 0.95, radius: 330, points: 12, irregularity: 0.37},
+            {cx: mapWidth * 0.85, cy: mapHeight * 0.65, radius: 240, points: 6, irregularity: 0.28},
+            {cx: mapWidth * 0.55, cy: mapHeight * 0.98, radius: 200, points: 7, irregularity: 0.3},
+            {cx: mapWidth * 0.5, cy: mapHeight * 0.5, radius: 450, points: 13, irregularity: 0.45},
+            {cx: mapWidth * 0.1, cy: mapHeight * 0.05, radius: 150, points: 5, irregularity: 0.2, hasCoconutTree: true},
+            {cx: mapWidth * 0.9, cy: mapHeight * 0.95, radius: 300, points: 11, irregularity: 0.4},
+            {cx: mapWidth * 0.35, cy: mapHeight * 0.4, radius: 250, points: 9, irregularity: 0.33},
+            {cx: mapWidth * 0.65, cy: mapHeight * 0.15, radius: 260, points: 8, irregularity: 0.3, hasCoconutTree: true},
+            {cx: mapWidth * 0.45, cy: mapHeight * 0.7, radius: 210, points: 7, irregularity: 0.27},
+            {cx: mapWidth * 0.18, cy: mapHeight * 0.7, radius: 340, points: 11, irregularity: 0.4, hasCoconutTree: true},
+            {cx: mapWidth * 0.8, cy: mapHeight * 0.02, radius: 230, points: 9, irregularity: 0.3},
+            {cx: mapWidth * 0.7, cy: mapHeight * 0.9, radius: 290, points: 10, irregularity: 0.35},
+            {cx: mapWidth * 0.02, cy: mapHeight * 0.9, radius: 190, points: 6, irregularity: 0.25},
+        ];
+
+        const islandPolygons = islands.map(i => createIslandShape(i.cx, i.cy, i.radius, i.points, i.irregularity));
+
+        function pointInPolygon(point, polygon) {
+            let inside = false;
+            for(let i=0, j=polygon.length-1; i<polygon.length; j=i++) {
+                const xi = polygon[i].x, yi = polygon[i].y;
+                const xj = polygon[j].x, yj = polygon[j].y;
+                const intersect = ((yi > point.y) !== (yj > point.y)) &&
+                                  (point.x < (xj - xi) * (point.y - yi) / (yj - yi) + xi);
+                if(intersect) inside = !inside;
+            }
+            return inside;
+        }
+
+        function isInsideAnyIsland(x, y) {
+            for(let polygon of islandPolygons) {
+                if(pointInPolygon({x,y}, polygon)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function findSafePlayerSpawn() {
+            let spawnX, spawnY, safe;
+            const spawnBuffer = player.size * 2;
+            do {
+                spawnX = Math.random() * mapWidth;
+                spawnY = Math.random() * mapHeight;
+                safe = !checkIslandCollision(spawnX, spawnY, player.size);
+            } while(!safe);
+            player.x = spawnX;
+            player.y = spawnY;
+        }
+
+        function spawnFood() {
+            let x, y, safe;
+            do {
+                x = Math.random() * mapWidth;
+                y = Math.random() * mapHeight;
+                safe = !isInsideAnyIsland(x,y);
+            } while(!safe);
+
+            const speed = player.speed * 0.6 + Math.random() * 0.4;
+            foods.push({x, y, size: 14, speed, rotation: 0}); // 먹이 크기 14 유지
+        }
+
+        for(let i=0; i<40; i++) spawnFood();
+
+        setInterval(() => {
+            if (foods.length < 150) {
+                spawnFood();
+            }
+        }, 2000);
+
+        const keys = {};
+        window.addEventListener('keydown', e => { keys[e.key.toLowerCase()] = true; });
+        window.addEventListener('keyup', e => { keys[e.key.toLowerCase()] = false; });
+
+        let mouseX = 0;
+        let mouseY = 0;
+        canvas.addEventListener('mousemove', e => {
+            const rect = canvas.getBoundingClientRect();
+            mouseX = e.clientX - rect.left;
+            mouseY = e.clientY - rect.top;
+        });
+
+        function checkIslandCollision(nx, ny, objectSize) {
+            const halfSize = objectSize / 2;
+            const checkPoints = [
+                {x: nx, y: ny},
+                {x: nx + halfSize, y: ny},
+                {x: nx - halfSize, y: ny},
+                {x: nx, y: ny + halfSize},
+                {x: nx, y: ny - halfSize}
+            ];
+            for(const point of checkPoints) {
+                for(let polygon of islandPolygons) {
+                    if(pointInPolygon(point, polygon)) return true;
+                }
+            }
+            return false;
+        }
+
+        function moveFoodAway(food) {
+            const dx = food.x - player.x;
+            const dy = food.y - player.y;
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            const safeDist = 150;
+
+            if(dist < safeDist) {
+                const angleAwayFromPlayer = Math.atan2(dy, dx); 
+                
+                // 먹이가 플레이어로부터 멀어지는 방향을 바라보도록 설정합니다.
+                // 이미지가 오른쪽을 바라보는 경우, 이 각도에 Math.PI / 2를 더해야 '앞'을 바라보게 됩니다.
+                food.rotation = angleAwayFromPlayer + Math.PI / 2;
+
+                const moveSpeed = food.speed;
+                let nx = food.x + Math.cos(angleAwayFromPlayer) * moveSpeed;
+                let ny = food.y + Math.sin(angleAwayFromPlayer) * moveSpeed;
+
+                if(!checkIslandCollision(nx, ny, food.size / 2 )) {
+                    nx = Math.min(Math.max(food.size, nx), mapWidth - food.size);
+                    ny = Math.min(Math.max(food.size, ny), mapHeight - food.size);
+                    food.x = nx;
+                    food.y = ny;
+                }
+            } else {
+                food.rotation = 0; // 플레이어 근처 아니면 기본 회전 (0라디안)
+            }
+        }
+
+        let camX, camY;
+        let waterWaveOffset = 0; // 물결 애니메이션을 위한 별도 오프셋 변수
+
+        function drawSea() {
+            const grad = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            grad.addColorStop(0, '#87ceeb'); // 밝은 하늘색
+            grad.addColorStop(1, '#001f3f'); // 깊은 바다색
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // 물결 효과 (Date.now()를 사용하여 시간에 따라 물결이 움직이도록 함)
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+            ctx.lineWidth = 1;
+            waterWaveOffset = (waterWaveOffset + 0.5) % (Math.PI * 2 * 100); // 물결 오프셋 지속적으로 증가
+            for(let yWave=0; yWave < canvas.height + 30; yWave+=15){
+                ctx.beginPath();
+                const yOffset = camY % 15;
+                for(let xWave=0; xWave <= canvas.width; xWave++){
+                    // Date.now() 대신 waterWaveOffset을 사용하고, 야자수에 영향을 주지 않도록 로컬 변수만 사용
+                    const wave = 3 * Math.sin((xWave + camX * 0.3) * 0.1 + (yWave + camY * 0.3) * 0.15 + waterWaveOffset * 0.005);
+                    if(xWave === 0) ctx.moveTo(xWave, yWave - yOffset + wave);
+                    else ctx.lineTo(xWave, yWave - yOffset + wave);
+                }
+                ctx.stroke();
+            }
+        }
+
+        // 야자수 그리기 함수 (완전 고정 + 깊은 바다에 야자수 생성 방지)
+        function drawCoconutTree(treeX, treeY, scale = 1) {
+            // 야자수가 생성될 맵의 실제 Y 좌표 (카메라 움직임과 무관하게)
+            const mapTreeY = treeY + camY; 
+            const deepSeaThreshold = mapHeight * 0.6; // 예시: 맵 높이의 60% 지점
+
+            // 깊은 바다 (맵의 중간 이상 아래쪽)에는 야자수 그리지 않음
+            if (mapTreeY > deepSeaThreshold) { 
+                return;
+            }
+
+            ctx.fillStyle = '#8B4513';
+            const trunkWidth = 15 * scale;
+            const trunkHeight = 70 * scale;
+            ctx.fillRect(treeX - trunkWidth / 2, treeY - trunkHeight, trunkWidth, trunkHeight);
+
+            ctx.fillStyle = '#228B22';
+            const leafLength = 50 * scale;
+            const numLeaves = 5;
+            for (let i = 0; i < numLeaves; i++) {
+                const angle = (Math.PI * 2 / numLeaves) * i + Math.PI / 4;
+                ctx.beginPath();
+                ctx.moveTo(treeX, treeY - trunkHeight);
+                ctx.lineTo(treeX + Math.cos(angle - 0.3) * leafLength, treeY - trunkHeight - Math.sin(angle - 0.3) * leafLength * 0.8);
+                ctx.lineTo(treeX + Math.cos(angle) * leafLength * 1.2, treeY - trunkHeight - Math.sin(angle) * leafLength * 0.5);
+                ctx.lineTo(treeX + Math.cos(angle + 0.3) * leafLength, treeY - trunkHeight - Math.sin(angle + 0.3) * leafLength * 0.8);
+                ctx.closePath();
+                ctx.fill();
+            }
+        }
+
+        function drawIslands() {
+            const upperIslandThreshold = mapHeight / 2.5;
+
+            islandPolygons.forEach((polygon, index) => {
+                const originalIsland = islands[index];
+                const isUpperIsland = originalIsland.cy < upperIslandThreshold;
+
+                ctx.fillStyle = isUpperIsland ? '#F5DEB3' : '#A0522D';
+                ctx.beginPath();
+                polygon.forEach((v, i) => {
+                    const x = v.x - camX;
+                    const y = v.y - camY;
+                    if(i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                });
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.fillStyle = isUpperIsland ? '#D2B48C' : '#8B5A2B';
+                ctx.beginPath();
+                const cx = originalIsland.cx;
+                const cy = originalIsland.cy;
+                polygon.forEach((v,i) => {
+                    const vx = v.x - cx;
+                    const vy = v.y - cy;
+                    const dist = Math.sqrt(vx*vx + vy*vy);
+                    const newDist = Math.max(dist - 15, 0);
+                    const nx = cx + (vx / (dist || 1)) * newDist;
+                    const ny = cy + (vy / (dist || 1)) * newDist;
+                    const sx = nx - camX;
+                    const sy = ny - camY;
+                    if(i === 0) ctx.moveTo(sx, sy);
+                    else ctx.lineTo(sx, sy);
+                });
+                ctx.closePath();
+                ctx.fill();
+
+                if (originalIsland.hasCoconutTree) {
+                    const numTrees = Math.floor(originalIsland.radius / 80) + 1;
+                    for (let i = 0; i < numTrees; i++) {
+                        const treeOffsetX = (Math.random() - 0.5) * originalIsland.radius * 0.8;
+                        const treeOffsetY = (Math.random() - 0.5) * originalIsland.radius * 0.8;
+                        const treeDrawX = originalIsland.cx + treeOffsetX - camX;
+                        const treeDrawY = originalIsland.cy + treeOffsetY - camY - originalIsland.radius * 0.2;
+                        drawCoconutTree(treeDrawX, treeDrawY, 0.8 + Math.random() * 0.4);
+                    }
+                }
+            });
+        }
+
+        function drawRotatedImage(image, x, y, width, height, rotation) {
+            ctx.save();
+            ctx.translate(x + width/2, y + height/2);
+            ctx.rotate(rotation);
+            ctx.drawImage(image, -width/2, -height/2, width, height);
+            ctx.restore();
+        }
+
+        function gameLoop() {
+            let nx = player.x;
+            let ny = player.y;
+
+            if(keys['w'] || keys['arrowup']) ny -= player.speed;
+            if(keys['s'] || keys['arrowdown']) ny += player.speed;
+            if(keys['a'] || keys['arrowleft']) nx -= player.speed * player.horizontalSpeedMultiplier;
+            if(keys['d'] || keys['arrowright']) nx += player.speed * player.horizontalSpeedMultiplier;
+
+            nx = Math.max(player.size, Math.min(mapWidth - player.size, nx));
+            ny = Math.max(player.size, Math.min(mapHeight - player.size, ny));
+
+            if(!checkIslandCollision(nx, ny, player.size)){
+                player.x = nx;
+                player.y = ny;
+            }
+
+            camX = player.x - canvas.width/2;
+            camY = player.y - canvas.height/2;
+            camX = Math.max(0, Math.min(mapWidth - canvas.width, camX));
+            camY = Math.max(0, Math.min(mapHeight - canvas.height, camY));
+
+            const playerScreenX = player.x - camX;
+            const playerScreenY = player.y - camY;
+            player.rotation = Math.atan2(mouseY - playerScreenY, mouseX - playerScreenX) + Math.PI / 2;
+
+            for(let i=foods.length-1; i>=0; i--){
+                const food = foods[i];
+                moveFoodAway(food);
+
+                const dxFood = food.x - player.x;
+                const dyFood = food.y - player.y;
+                const distFood = Math.sqrt(dxFood*dxFood + dyFood*dyFood);
+
+                if(distFood < (player.size * 0.8) + (food.size * 0.8)) {
+                    foods.splice(i, 1);
+                    player.score++;
+                    document.getElementById('score').textContent = `점수: ${player.score}`;
+                }
+            }
+
+            drawSea();
+            drawIslands();
+
+            foods.forEach(food => {
+                const drawX = food.x - camX;
+                const drawY = food.y - camY;
+                const foodDrawSize = food.size * 2;
+                if (drawX + foodDrawSize > 0 && drawX - foodDrawSize < canvas.width &&
+                    drawY + foodDrawSize > 0 && drawY - foodDrawSize < canvas.height) {
+                    drawRotatedImage(foodImage, drawX - foodDrawSize/2, drawY - foodDrawSize/2, foodDrawSize, foodDrawSize, food.rotation);
+                }
+            });
+
+            const playerDrawX = player.x - camX;
+            const playerDrawY = player.y - camY;
+
+            const playerDrawWidth = player.size * 3.5;
+            const playerDrawHeight = playerDrawWidth / playerImageAspectRatio;
+
+            drawRotatedImage(playerImage, playerDrawX - playerDrawWidth/2, playerDrawY - playerDrawHeight/2, playerDrawWidth, playerDrawHeight, player.rotation);
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        let imagesLoaded = 0;
+        const totalImages = 2;
+
+        function imageLoadHandler() {
+            imagesLoaded++;
+            if (imagesLoaded === totalImages) {
+                findSafePlayerSpawn();
+                gameLoop();
+            }
+        }
+
+        foodImage.onload = imageLoadHandler;
+        playerImage.onload = imageLoadHandler;
+
+        foodImage.onerror = () => { console.error("Food image failed to load. Check URL: " + foodImage.src); imagesLoaded++; if (imagesLoaded === totalImages) gameLoop(); };
+        playerImage.onerror = () => { console.error("Player image failed to load. Check URL: " + playerImage.src); imagesLoaded++; if (imagesLoaded === totalImages) gameLoop(); };
+    </script>
+</body>
+</html>
